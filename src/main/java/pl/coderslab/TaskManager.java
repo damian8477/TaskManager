@@ -21,18 +21,17 @@ public class TaskManager {
     private static final String[] menuTab = {"add", "remove", "list", "exit"};
     private static String[][] tasks;
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
         getList();
         presentMenu();
         menu();
     }
 
-    private static void menu(){
+    private static void menu() {
         boolean isContinue = true;
         while (isContinue) {
-            String command = scan.nextLine();
-
-            switch (command){
+            String command = scan.nextLine().trim();
+            switch (command) {
                 case "add":
                     add();
                     break;
@@ -47,7 +46,7 @@ public class TaskManager {
                     isContinue = false;
                     break;
                 default:
-                    if(!command.equals("")){
+                    if (!command.equals("")) {
                         System.out.println(ConsoleColors.RED_BOLD + "Please, read menu");
                         presentMenu();
                     }
@@ -55,46 +54,55 @@ public class TaskManager {
         }
     }
 
-    private static void remove(){
+    private static void remove() {
         System.out.println("Please select number to remove");
-        int id = 0;
         try {
-            id = scan.nextInt();
-        } catch (InputMismatchException e){
-            System.out.println("Number is not number");
-            return;
+            int id = scan.nextInt();
+            removeFromTask(id);
+            presentMenu();
+        } catch (InputMismatchException e) {
+            System.out.println("Incorrect argument passed. Please give number greater or equals 0");
         }
 
-        if(removeFromTask(id)){
-            System.out.println("Value was successfully deleted");
-        } else {
-            System.out.println("Value is out of lenght");
-        }
     }
 
-    private static boolean removeFromTask(int id){
-        if(id > tasks.length || id < 0){
-            return false;
+    private static void removeFromTask(int id) {
+        try {
+            tasks = ArrayUtils.remove(tasks, id);
+            updateCSV();
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Incorrect argument passed. Please give number greater or equals 0");
         }
-        tasks = ArrayUtils.remove(tasks, id);
-        updateCSV();
-        return true;
+
     }
 
-    private static void add(){
+    private static void add() {
         System.out.println("Please add task description");
         String taskDescription = scan.nextLine();
         System.out.println("Please add task due date");
         String date = scan.nextLine();
         System.out.println("Is your task is important: true/false");
-        boolean isImportant = scan.nextBoolean();
-
+        boolean isImportant;
+        try {
+            isImportant = getBoolean(scan.nextLine());
+        } catch (InputMismatchException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
         tasks = Arrays.copyOf(tasks, tasks.length + 1);
         tasks[tasks.length - 1] = new String[]{taskDescription, date, String.valueOf(isImportant)};
         updateCSV();
+        presentMenu();
     }
 
-    private static void updateCSV(){
+    private static boolean getBoolean(String str){
+        if(str.equalsIgnoreCase("true") || str.equalsIgnoreCase("false")){
+            return true;
+        }
+        throw new InputMismatchException("Bad value, enter true or false");
+    }
+
+    private static void updateCSV() {
         writeToFile("", StandardOpenOption.TRUNCATE_EXISTING);
         for (String[] task : tasks) {
             String str = StringUtils.join(task, ", ");
@@ -102,38 +110,39 @@ public class TaskManager {
         }
     }
 
-    private static void writeToFile(String str, StandardOpenOption standardOpenOption){
-        try{
+    private static void writeToFile(String str, StandardOpenOption standardOpenOption) {
+        try {
             Files.writeString(path, str, standardOpenOption);
-        }catch (IOException e){
+        } catch (IOException e) {
             System.out.println(e);
         }
     }
 
-    private static void getList(){
+    private static void getList() {
         tasks = new String[0][3];
-        try{
-            for(String s : Files.readAllLines(path)) {
+        try {
+            for (String s : Files.readAllLines(path)) {
                 String[] nextTab = s.trim().split(",");
                 tasks = Arrays.copyOf(tasks, tasks.length + 1);
                 tasks[tasks.length - 1] = nextTab;
             }
-        }catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             System.out.println("File not exist");
-        }catch (IOException e){
+        } catch (IOException e) {
             System.out.println(e);
         }
     }
 
-    private static void printList(){
+    private static void printList() {
         for (int i = 0; i < tasks.length; i++) {
             System.out.println(i + ": " + StringUtils.join(tasks[i], " "));
         }
+        presentMenu();
     }
 
 
-    private static void presentMenu(){
-        System.out.println(ConsoleColors.BLUE_BOLD + "Please select the option: ");
+    private static void presentMenu() {
+        System.out.println(ConsoleColors.BLUE_BOLD + "\nPlease select the option: ");
         for (String s : menuTab) {
             System.out.println(ConsoleColors.WHITE + s);
         }
